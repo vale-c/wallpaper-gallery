@@ -42,17 +42,13 @@ Follow these steps to get the Wallpaper Gallery up and running on your local mac
    bun install
    ```
 
-3. **Set up environment variables**
-
-   Create a `.env.local` file in the root directory and add any necessary environment variables.
-
-4. **Run the development server**
+3. **Run the development server**
 
    ```bash
    bun run dev
    ```
 
-5. **Open the application**
+4. **Open the application**
 
    Navigate to [http://localhost:3000](http://localhost:3000) in your browser to see the gallery in action!
 
