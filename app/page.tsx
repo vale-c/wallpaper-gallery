@@ -1,49 +1,62 @@
 "use client";
-import { lazy, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Suspense } from "react";
-import Loading from "@/components/loading";
-
-const ImageGallery = lazy(() => import("@/components/image-gallery"));
+import { ThemeSwitch } from "@/components/ui/theme-switch";
+import ImageGallery from "@/components/image-gallery";
 
 export default function Home() {
   const limit = 25;
-  const totalPages = 10; // Assuming you have 10 pages for pagination
-  const [initialImagesData, setInitialImagesData] = useState([]);
+  const totalPages = 10;
+  const [imagesData, setImagesData] = useState([]);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const fetchImages = async () => {
       try {
         const res = await fetch(
-          `https://api.unsplash.com/photos?page=1&per_page=${limit}&client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
+          `https://api.unsplash.com/photos?page=${page}&per_page=${limit}&client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
         );
-        if (!res.ok) {
-          throw new Error("Failed to fetch images from Unsplash API");
-        }
         const data = await res.json();
-        setInitialImagesData(data);
+        setImagesData(data);
       } catch (error) {
-        console.error("Error fetching initial images:", error);
+        console.error("Error fetching images:", error);
       }
     };
 
-    fetchImages(); // Fetch images for the first page when the component mounts
-  }, [limit]);
+    fetchImages();
+  }, [page]);
+
+  const handleNext = () => {
+    if (page < totalPages) setPage((prev) => prev + 1);
+  };
+
+  const handlePrev = () => {
+    if (page > 1) setPage((prev) => prev - 1);
+  };
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeSwitch />
+      </div>
       <main className="container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 font-serif">
-            Wallpaper Gallery
+            Wallpaper Gallery 🖼️
           </h1>
         </div>
-        <Suspense fallback={<Loading />}>
-          <ImageGallery
-            initialImagesData={initialImagesData}
-            totalPages={totalPages}
-          />
-        </Suspense>
+        <ImageGallery
+          imagesData={imagesData}
+          totalPages={totalPages}
+          page={page}
+          handleNext={handleNext}
+          handlePrev={handlePrev}
+        />
       </main>
     </ThemeProvider>
   );

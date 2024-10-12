@@ -1,69 +1,86 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Masonry from "react-masonry-css";
 import { Button } from "@/components/ui/button";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ImageData {
-  id: string; // The unique identifier for the image
+  id: string;
   urls: {
-    // Different sizes of the image
     raw: string;
     full: string;
     regular: string;
-    small: string;
-    thumb: string;
+    small: string; // Lower resolution for gallery
+    thumb: string; // Thumbnail
   };
   user: {
-    // Information about the author of the image
     name: string;
     username: string;
   };
-  width: number; // Image width in pixels
-  height: number; // Image height in pixels
-  description?: string; // Optional description of the image
-  alt_description?: string; // Optional alt text for the image
+  width: number;
+  height: number;
+  description?: string;
+  alt_description?: string;
 }
 
 interface ImageGalleryProps {
-  initialImagesData: ImageData[];
+  imagesData: ImageData[];
   totalPages: number;
+  page: number;
+  handleNext: () => void;
+  handlePrev: () => void;
 }
 
 export default function ImageGallery({
-  initialImagesData,
+  imagesData,
   totalPages,
+  page,
+  handleNext,
+  handlePrev,
 }: ImageGalleryProps) {
-  const [imagesData, setImagesData] = useState(initialImagesData);
-  const [page, setPage] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null
+  );
 
-  const fetchImages = async (page: number) => {
-    try {
-      const res = await fetch(
-        `https://api.unsplash.com/photos?page=${page}&per_page=25&client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
-      );
-      const data = await res.json();
-      setImagesData(data);
-    } catch (error) {
-      console.error("Failed to fetch images:", error);
-    } finally {
-    }
+  // Handle fullscreen opening
+  const openFullScreen = (index: number) => {
+    setSelectedImageIndex(index);
+    document.body.style.overflow = "hidden"; // Disable scroll in fullscreen
   };
 
-  const handleNext = () => {
-    if (page < totalPages) {
-      setPage((prev) => prev + 1);
-      fetchImages(page + 1);
-    }
-  };
+  // Close fullscreen
+  const closeFullScreen = useCallback(() => {
+    setSelectedImageIndex(null);
+    document.body.style.overflow = "auto"; // Restore scroll
+  }, []);
 
-  const handlePrev = () => {
-    if (page > 1) {
-      setPage((prev) => prev - 1);
-      fetchImages(page - 1);
-    }
-  };
+  // Navigate fullscreen
+  const navigateImage = useCallback(
+    (direction: "next" | "prev") => {
+      if (selectedImageIndex === null) return;
+      const totalImages = imagesData?.length ?? 0;
+      const newIndex =
+        direction === "next"
+          ? (selectedImageIndex + 1) % totalImages
+          : (selectedImageIndex - 1 + totalImages) % totalImages;
+      setSelectedImageIndex(newIndex);
+    },
+    [selectedImageIndex, imagesData?.length]
+  );
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeFullScreen();
+      if (event.key === "ArrowRight") navigateImage("next");
+      if (event.key === "ArrowLeft") navigateImage("prev");
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeFullScreen, navigateImage]);
 
   return (
     <>
@@ -72,12 +89,16 @@ export default function ImageGallery({
         className="flex w-auto -ml-4"
         columnClassName="pl-4 bg-clip-padding"
       >
-        {imagesData.map((image) => (
-          <div key={image.id} className="mb-4 cursor-pointer">
+        {imagesData?.map((image, index) => (
+          <div
+            key={image?.id}
+            className="mb-4 cursor-pointer"
+            onClick={() => openFullScreen(index)}
+          >
             <div className="relative aspect-auto overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105">
               <Image
-                src={image.urls.regular}
-                alt={`Gallery image ${image.id}`}
+                src={image?.urls?.small || image?.urls?.thumb || ""}
+                alt={image?.alt_description || `Gallery image ${image?.id}`}
                 width={500}
                 height={500}
                 className="object-cover w-full h-auto"
@@ -88,6 +109,61 @@ export default function ImageGallery({
           </div>
         ))}
       </Masonry>
+
+      {/* Fullscreen Overlay */}
+      {selectedImageIndex !== null && imagesData?.[selectedImageIndex] && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-40 bg-black bg-opacity-80 backdrop-blur-md"
+          onClick={closeFullScreen}
+        >
+          <button
+            className="absolute top-4 right-4 p-2 rounded-full transition-all duration-300 cursor-pointer bg-gray-200 text-gray-800 hover:bg-gray-300 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeFullScreen();
+            }}
+          >
+            <X size={24} />
+          </button>
+
+          <button
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all duration-300 cursor-pointer bg-gray-200 text-gray-800 hover:bg-gray-300 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigateImage("prev");
+            }}
+          >
+            <ChevronLeft size={24} />
+          </button>
+
+          <button
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full transition-all duration-300 cursor-pointer bg-gray-200 text-gray-800 hover:bg-gray-300 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigateImage("next");
+            }}
+          >
+            <ChevronRight size={24} />
+          </button>
+
+          <div
+            className="relative w-full h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={imagesData?.[selectedImageIndex]?.urls?.regular || ""}
+              alt={
+                imagesData?.[selectedImageIndex]?.alt_description ||
+                "Fullscreen image"
+              }
+              layout="fill"
+              objectFit="contain"
+              quality={80} // Set to lower quality for faster loading
+              priority
+            />
+          </div>
+        </div>
+      )}
 
       {/* Pagination Controls */}
       <div className="flex justify-center items-center space-x-4 mt-8">
