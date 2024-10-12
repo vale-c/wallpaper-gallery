@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import ImageGallery from "@/components/image-gallery";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export default function Home() {
   const limit = 25;
@@ -41,8 +42,8 @@ export default function Home() {
       enableSystem
       disableTransitionOnChange
     >
-      <div className="absolute top-4 right-4 z-50">
-        <ThemeSwitch />
+      <div className="absolute top-4 right-4 z-20">
+        <ModeToggle />
       </div>
       <main className="container mx-auto px-4 py-12">
         <div className="flex justify-between items-center mb-8">
