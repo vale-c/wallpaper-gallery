@@ -1,23 +1,34 @@
-import ImageGallery from '@/components/image-gallery';
-import { Suspense } from 'react';
-import Loading from '@/components/loading';
-import { ThemeProvider } from '@/components/theme-provider';
-import { ModeToggle } from '@/components/mode-toggle';
+"use client";
+import { lazy, useState, useEffect } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Suspense } from "react";
+import Loading from "@/components/loading";
 
-async function getImages() {
-  const res = await fetch(
-    'https://storage.googleapis.com/panels-api/data/20240916/media-1a-i-p~s',
-    { next: { revalidate: 3600 } } // Revalidate every hour
-  );
-  if (!res.ok) {
-    throw new Error('Failed to fetch images');
-  }
-  const data = await res.json();
-  return data.data;
-}
+const ImageGallery = lazy(() => import("@/components/image-gallery"));
 
-export default async function Home() {
-  const imagesData = await getImages();
+export default function Home() {
+  const limit = 25;
+  const totalPages = 10; // Assuming you have 10 pages for pagination
+  const [initialImagesData, setInitialImagesData] = useState([]);
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const res = await fetch(
+          `https://api.unsplash.com/photos?page=1&per_page=${limit}&client_id=${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`
+        );
+        if (!res.ok) {
+          throw new Error("Failed to fetch images from Unsplash API");
+        }
+        const data = await res.json();
+        setInitialImagesData(data);
+      } catch (error) {
+        console.error("Error fetching initial images:", error);
+      }
+    };
+
+    fetchImages(); // Fetch images for the first page when the component mounts
+  }, [limit]);
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -26,14 +37,14 @@ export default async function Home() {
           <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 font-serif">
             Wallpaper Gallery
           </h1>
-          <ModeToggle />
         </div>
         <Suspense fallback={<Loading />}>
-          <ImageGallery imagesData={imagesData} />
+          <ImageGallery
+            initialImagesData={initialImagesData}
+            totalPages={totalPages}
+          />
         </Suspense>
       </main>
     </ThemeProvider>
   );
 }
-
-export const runtime = 'edge';
