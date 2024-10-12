@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeSwitch } from "@/components/ui/theme-switch";
 import ImageGallery from "@/components/image-gallery";
 import { ModeToggle } from "@/components/mode-toggle";
 
